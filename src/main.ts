@@ -5,7 +5,9 @@ import Icosphere from './geometry/Icosphere';
 import Square from './geometry/Square';
 import Cube from './geometry/Cube';
 import LSystem from './lsystem';
-import LSystemMesh from './geometry/LSystemMesh';
+import CityMesh from './geometry/CityMesh';
+import {Building} from "./citylayout";
+import {CityLayout} from "./citylayout";
 import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import {setGL} from './globals';
@@ -16,6 +18,7 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 const controls = {
   tesselations: 7,
   'Load Scene': loadScene, // A function pointer, essentially
+  'Iterate': iterPlus, // A function pointer, essentially
   color: [60,130,23,1],
   'Shader' : 'Lambert'
 };
@@ -23,21 +26,23 @@ const controls = {
 let icosphere: Icosphere;
 let square: Square;
 let lsystem: LSystem;
-let lsystemmesh: LSystemMesh;
+let citymesh: CityMesh;
 let cube: Cube;
 let time = 300;
 let flag = false;
-let output = "";
+let output: string[][] = [];
+let objloaded: boolean[][] = [];
+let citylayout: CityLayout;
+let iters = 2;
 
 function loadScene() {
-  icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, controls.tesselations);
-  icosphere.create();
-  square = new Square(vec3.fromValues(0, 0, 0));
-  square.create();
-  lsystemmesh = new LSystemMesh(vec3.fromValues(0, 0, 0), lsystem.lsystem);
-  lsystemmesh.create();
-  cube = new Cube(vec3.fromValues(0, 0, 0));
-  cube.create();
+  flag = true;
+}
+
+function iterPlus() {
+    iters++;
+    citylayout.iterCityGrowth();
+    flag = true;
 }
 
 
@@ -56,6 +61,7 @@ function main() {
   //const text = new GUIText();
   gui.add(controls, 'tesselations', 0, 8).step(1);
   gui.add(controls, 'Load Scene');
+  gui.add(controls, 'Iterate');
   const colorPicker = gui.addColor(controls, 'color');
   gui.add(controls, 'Shader', [ 'Lambert'] );
  
@@ -80,13 +86,17 @@ function main() {
   
 
   //LSYSTEM INIT 
-  lsystem = new LSystem(vec3.fromValues(0,0,0), "[AAA]");
-
   // Initial call to load scene
+  citylayout = new CityLayout(vec2.fromValues(20,20), vec2.fromValues(20.0,20.0));
+  citylayout.genCity(iters);
+
+  citymesh = new CityMesh(vec3.fromValues(0,0,0), citylayout);
+  citymesh.create();
   loadScene();
 
 
-  const camera = new Camera(vec3.fromValues(0, 0, 5), vec3.fromValues(0, 1, 0));
+
+  const camera = new Camera(vec3.fromValues(-5, 7, 10), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(0.2, 0.2, 0.2, 1);
@@ -108,10 +118,33 @@ function main() {
   // This function will be called every frame
   function tick() {
     if(flag) {
-      let vertices = loadMeshData(output);
-      console.log(output);
-      lsystemmesh.storeFlowVerts(vertices.vertices);
-      lsystemmesh.create();
+      citymesh.clearArrs();
+      let win_frame = loadMeshData(output[0][0]);
+      let win_glass = loadMeshData(output[0][1]);
+      let build_base = loadMeshData(output[1][0]);
+      let build_level = loadMeshData(output[1][1]);
+      let build_roof = loadMeshData(output[1][2]);
+      let pokecenterv = loadMeshData(output[2][0]);
+      let pokecenter_red = loadMeshData(output[2][1]);
+      let pokecenter_win = loadMeshData(output[2][2]);
+      let tree = loadMeshData(output[3][0]);
+      let tree_trunk = loadMeshData(output[3][1]);
+      let gym_base = loadMeshData(output[4][0]);
+      let split_building = loadMeshData(output[5][0]);
+      citymesh.storeBuildingVerts(win_frame.vertices, 0, 0 , [1,1,0]);
+      citymesh.storeBuildingVerts(win_glass.vertices, 0, 1 , [0.9,0.9,1.0]);
+      citymesh.storeBuildingVerts(build_base.vertices, 1, 0, [0,0,1]);
+      citymesh.storeBuildingVerts(build_level.vertices, 1, 1, [0,1,1]);
+      citymesh.storeBuildingVerts(build_roof.vertices, 1, 2, [0,1,0.5]);
+      citymesh.storeBuildingVerts(pokecenterv.vertices, 2, 0 , [0.9,0.9,1.0]);
+      citymesh.storeBuildingVerts(pokecenter_red.vertices, 2, 1 , [0.9,0.1,0]);
+      citymesh.storeBuildingVerts(pokecenter_win.vertices, 2, 2 , [0.0,0.8,9]);
+      citymesh.storeBuildingVerts(tree.vertices, 3, 0 , [0.9,0.1,0]);
+      citymesh.storeBuildingVerts(tree_trunk.vertices, 3, 1 , [0.0,0.8,9]);
+      citymesh.storeBuildingVerts(gym_base.vertices, 4, 0 , [0.0,0.8,0.0]);
+      citymesh.storeBuildingVerts(split_building.vertices, 5, 0 , [0.8,0.5,0.0]);
+      citymesh.loadBuildings(citylayout.buildings);
+      citymesh.create();
       flag = false;
     }
     camera.update();
@@ -124,7 +157,7 @@ function main() {
         //icosphere,
         //square,
         //cube,
-        lsystemmesh,
+        citymesh,
       ]);
     } 
 
@@ -144,7 +177,18 @@ function main() {
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
 
-  readTextFile("/src/obj/cube2.obj", output);
+  readTextFile("/src/obj/win_frame.obj", 0 ,0);
+  readTextFile("/src/obj/win_glass.obj", 0 ,1);
+  readTextFile("/src/obj/build_base.obj", 1 ,0);
+  readTextFile("/src/obj/build_level.obj", 1 ,1);
+  readTextFile("/src/obj/build_roof.obj", 1 ,2);
+  readTextFile("/src/obj/pokecenter.obj", 2, 0);
+  readTextFile("/src/obj/pokecenter_red.obj", 2, 1);
+  readTextFile("/src/obj/pokecenter_win.obj", 2, 2);
+  readTextFile("/src/obj/tree.obj", 3, 0);
+  readTextFile("/src/obj/tree_trunk.obj", 3, 1);
+  readTextFile("/src/obj/gym_base.obj", 4, 0);
+  readTextFile("/src/obj/split_building.obj", 5, 0);
 
   // Start the render loop
   tick();
@@ -153,8 +197,9 @@ function main() {
 
 main();
 
-function readTextFile(file: string, output: string)
+function readTextFile(file: string, i: number, j : number)
 {
+  flag=false;
     var rawFile = new XMLHttpRequest();
     rawFile.open("GET", file, true);
     var allText = "";
@@ -165,7 +210,7 @@ function readTextFile(file: string, output: string)
             if(rawFile.status === 200 || rawFile.status == 0)
             {
                 allText = rawFile.responseText;
-                setOutputText(allText);
+                setOutputText(allText, i, j);
                 //alert(allText);
             }
         }
@@ -174,14 +219,21 @@ function readTextFile(file: string, output: string)
     return allText;
 }
 
-function setOutputText(allText:string) {
-  flag = true;
-  output  = allText;
+function setOutputText(allText:string, i : number, j : number) {
+  flag = false;
+  if(output[i] == undefined) {
+    output[i] = [];
+  }
+  output[i][j]  = allText;
 }
 
 // https://dannywoodz.wordpress.com/2014/12/16/webgl-from-scratch-loading-a-mesh/
 
 function loadMeshData(string: string) {
+  if (string == undefined) {
+    console.log("string undefined");
+    return;
+  }
   var lines = string.split("\n");
   var positions : vec3[] = [];
   var normals : vec3[] = [];
