@@ -16,11 +16,10 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-  tesselations: 7,
-  'Load Scene': loadScene, // A function pointer, essentially
+  'Seed': 2, // A function pointer, essentially
+  'Reload Scene': loadScene, // A function pointer, essentially
+  'Iterations': 10, // A function pointer, essentially
   'Iterate': iterPlus, // A function pointer, essentially
-  color: [60,130,23,1],
-  'Shader' : 'Lambert'
 };
 
 let icosphere: Icosphere;
@@ -33,14 +32,19 @@ let flag = false;
 let output: string[][] = [];
 let objloaded: boolean[][] = [];
 let citylayout: CityLayout;
-let iters = 2;
+let iters = 0;
+let seed = 2;
 
 function loadScene() {
-  flag = true;
+    flag = true;
+    citylayout = new CityLayout(vec2.fromValues(20,20), vec2.fromValues(20.0,20.0));
+    citylayout.genCity(controls.Iterations, controls.Seed);
+    citymesh.citylayout = citylayout;
 }
 
+
 function iterPlus() {
-    iters++;
+    //iters++;
     citylayout.iterCityGrowth();
     flag = true;
 }
@@ -59,20 +63,11 @@ function main() {
   // Add controls to the gui
   const gui = new DAT.GUI();
   //const text = new GUIText();
-  gui.add(controls, 'tesselations', 0, 8).step(1);
-  gui.add(controls, 'Load Scene');
+  gui.add(controls, 'Seed', 0, 10).step(1);
+  gui.add(controls, 'Reload Scene');
+  gui.add(controls, 'Iterations', 1, 40).step(1);
   gui.add(controls, 'Iterate');
-  const colorPicker = gui.addColor(controls, 'color');
-  gui.add(controls, 'Shader', [ 'Lambert'] );
- 
-  const colorPicked = vec4.fromValues(controls.color[0]/255,controls.color[1]/255,controls.color[2]/255,1)
-      
-  // Display new color whenever color is changed
-  colorPicker.onChange(function() {
-    const colorPicked = vec4.fromValues(controls.color[0]/255,controls.color[1]/255,controls.color[2]/255,1)
-      lambert.setGeometryColor(colorPicked);
-      customShader.setGeometryColor(colorPicked);
-  });
+
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -88,7 +83,7 @@ function main() {
   //LSYSTEM INIT 
   // Initial call to load scene
   citylayout = new CityLayout(vec2.fromValues(20,20), vec2.fromValues(20.0,20.0));
-  citylayout.genCity(iters);
+  citylayout.genCity(iters, seed);
 
   citymesh = new CityMesh(vec3.fromValues(0,0,0), citylayout);
   citymesh.create();
@@ -99,7 +94,7 @@ function main() {
   const camera = new Camera(vec3.fromValues(-5, 7, 10), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
-  renderer.setClearColor(0.2, 0.2, 0.2, 1);
+  renderer.setClearColor(0.7, 0.8, 0.9, 1);
   gl.enable(gl.DEPTH_TEST);
 
   const lambert = new ShaderProgram([
@@ -112,8 +107,6 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/custom-frag.glsl')),
   ]);
 
-  lambert.setGeometryColor(colorPicked);
-  customShader.setGeometryColor(colorPicked);
 
   // This function will be called every frame
   function tick() {
@@ -124,24 +117,28 @@ function main() {
       let build_base = loadMeshData(output[1][0]);
       let build_level = loadMeshData(output[1][1]);
       let build_roof = loadMeshData(output[1][2]);
+      let build_bord = loadMeshData(output[1][3]);
       let pokecenterv = loadMeshData(output[2][0]);
       let pokecenter_red = loadMeshData(output[2][1]);
       let pokecenter_win = loadMeshData(output[2][2]);
       let tree = loadMeshData(output[3][0]);
       let tree_trunk = loadMeshData(output[3][1]);
       let gym_base = loadMeshData(output[4][0]);
+      let gym_brown = loadMeshData(output[4][1]);
       let split_building = loadMeshData(output[5][0]);
       citymesh.storeBuildingVerts(win_frame.vertices, 0, 0 , [1,1,0]);
       citymesh.storeBuildingVerts(win_glass.vertices, 0, 1 , [0.9,0.9,1.0]);
       citymesh.storeBuildingVerts(build_base.vertices, 1, 0, [0,0,1]);
       citymesh.storeBuildingVerts(build_level.vertices, 1, 1, [0,1,1]);
       citymesh.storeBuildingVerts(build_roof.vertices, 1, 2, [0,1,0.5]);
+      citymesh.storeBuildingVerts(build_bord.vertices, 1, 3, [0,1,0.5]);
       citymesh.storeBuildingVerts(pokecenterv.vertices, 2, 0 , [0.9,0.9,1.0]);
       citymesh.storeBuildingVerts(pokecenter_red.vertices, 2, 1 , [0.9,0.1,0]);
       citymesh.storeBuildingVerts(pokecenter_win.vertices, 2, 2 , [0.0,0.8,9]);
-      citymesh.storeBuildingVerts(tree.vertices, 3, 0 , [0.9,0.1,0]);
-      citymesh.storeBuildingVerts(tree_trunk.vertices, 3, 1 , [0.0,0.8,9]);
-      citymesh.storeBuildingVerts(gym_base.vertices, 4, 0 , [0.0,0.8,0.0]);
+      citymesh.storeBuildingVerts(tree.vertices, 3, 0 , [0.9,0.2,0.1]);
+      citymesh.storeBuildingVerts(tree_trunk.vertices, 3, 1 , [0.5,0.2,0.05]);
+      citymesh.storeBuildingVerts(gym_base.vertices, 4, 0 , [0.9,0.9,1.0]);
+      citymesh.storeBuildingVerts(gym_brown.vertices, 4, 1 , [0.9,0.9,1.0]);
       citymesh.storeBuildingVerts(split_building.vertices, 5, 0 , [0.8,0.5,0.0]);
       citymesh.loadBuildings(citylayout.buildings);
       citymesh.create();
@@ -177,18 +174,20 @@ function main() {
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
 
-  readTextFile("/src/obj/win_frame.obj", 0 ,0);
-  readTextFile("/src/obj/win_glass.obj", 0 ,1);
-  readTextFile("/src/obj/build_base.obj", 1 ,0);
-  readTextFile("/src/obj/build_level.obj", 1 ,1);
-  readTextFile("/src/obj/build_roof.obj", 1 ,2);
-  readTextFile("/src/obj/pokecenter.obj", 2, 0);
-  readTextFile("/src/obj/pokecenter_red.obj", 2, 1);
-  readTextFile("/src/obj/pokecenter_win.obj", 2, 2);
-  readTextFile("/src/obj/tree.obj", 3, 0);
-  readTextFile("/src/obj/tree_trunk.obj", 3, 1);
-  readTextFile("/src/obj/gym_base.obj", 4, 0);
-  readTextFile("/src/obj/split_building.obj", 5, 0);
+  readTextFile("/src/geometry/win_frame.obj", 0 ,0);
+  readTextFile("/src/geometry/win_glass.obj", 0 ,1);
+  readTextFile("/src/geometry/build_base.obj", 1 ,0);
+  readTextFile("/src/geometry/build_level.obj", 1 ,1);
+  readTextFile("/src/geometry/build_roof.obj", 1 ,2);
+  readTextFile("/src/geometry/build_roof.obj", 1 ,3);
+  readTextFile("/src/geometry/pokecenter.obj", 2, 0);
+  readTextFile("/src/geometry/pokecenter_red.obj", 2, 1);
+  readTextFile("/src/geometry/pokecenter_win.obj", 2, 2);
+  readTextFile("/src/geometry/tree.obj", 3, 0);
+  readTextFile("/src/geometry/tree_trunk.obj", 3, 1);
+  readTextFile("/src/geometry/gym_base.obj", 4, 0);
+  readTextFile("/src/geometry/gym_brown.obj", 4, 1);
+  readTextFile("/src/geometry/split_building.obj", 5, 0);
 
   // Start the render loop
   tick();
@@ -286,7 +285,6 @@ function loadMeshData(string: string) {
     }
   }
   var vertexCount = vertices.length / 6;
-  console.log("Loaded mesh with " + vertexCount + " vertices");
   return {
     primitiveType: 'TRIANGLES',
     vertices: vertices,

@@ -131,8 +131,19 @@ class CityMesh extends Drawable {
           else if(building.bType == 3) {
               this.placeTrees(building, building.iters)
           }
+          else if(building.bType == 4) {
+            let b = this.hash(building.pos[0] + building.pos[2]) * 0.5;
+            this.pushBuildingVBOs(building.pos, 0, 1, building.bType, 0, [1,0,0,0]);
+            this.pushBuildingVBOs(building.pos, 0, 1, building.bType, 1, [0.8,0.5,b,1]);
+        }
+            else if(building.bType == 5) {
+                let b = this.hash(building.pos[0] + building.pos[2]) * 0.2;
+                let angle = 0;
+                let rot = this.hash(building.pos[0] * building.pos[2] + 50)
+                if(rot > 0.5) {angle = 180};
+                this.pushBuildingVBOs(building.pos, angle, 1, building.bType, 0, [0.8,0.5,b,1]);
+            }
           else {
-            console.log(building.bType);
             this.pushBuildingVBOs(building.pos, 0, 1, building.bType, 0, [1,0,0,0]);
           }
       }
@@ -143,14 +154,31 @@ class CityMesh extends Drawable {
         vec3.copy(pos, building.pos);
         vec3.add(pos, pos, [this.hash(pos[2]) * 0.1, 0, this.hash(pos[0]) * 0.1]);
         let angle = building.angle;
-        this.pushBuildingVBOs(pos, angle, 1, building.bType, 0, [0,0,1]);
-        this.pushBuildingVBOs(vec3.fromValues(pos[0] - 0.5,pos[1],pos[2]), angle, 1, 0, 0, [0,0,1,0]);
-        this.pushBuildingVBOs(vec3.fromValues(pos[0] - 0.5,pos[1],pos[2]), angle, 1, 0, 1, [0,0,1,0]);
+        let r = this.hash(pos[0] + pos[2]) *50 - 25;
+        this.pushBuildingVBOs(pos, angle, 1, building.bType, 0, [215/255 + r/255,194/255,170/255,1]);
+        // this.pushBuildingVBOs(vec3.fromValues(pos[0] - 0.5,pos[1],pos[2]), angle, 1, 0, 0, [0,0,1,0]);
+        // this.pushBuildingVBOs(vec3.fromValues(pos[0] - 0.5,pos[1],pos[2]), angle, 1, 0, 1, [0,0,1,0]);
         for(let i = 0; i < iters; i++) {
-            this.pushBuildingVBOs(pos, angle, 1, building.bType, 1, [0,0,1,0]);
+            let ri = this.hash(pos[0] + pos[2] + i * 50) *50 - 25;
+            let posx = vec3.create();
+            vec3.copy(posx,pos);
+            vec3.add(posx,posx,[-0.25,0,0]);
+            this.pushBuildingVBOs(pos, angle, 1, building.bType, 1, [215/255 + ri/255,194/255,170/255,1]);
+            this.pushBuildingVBOs(pos, angle, 1, building.bType, 3, [215/255 + ri/255,194/255,170/255,1]);
+            this.pushBuildingVBOs(posx, angle, 1, 0, 0, [0,0,1,0]);
+            this.pushBuildingVBOs(posx, angle, 1, 0, 1, [0,0,1,0]);
+            if(this.hash(i + pos[0]) > 0.7) {
+                vec3.add(posx,posx,[0.5,0,0]);
+                this.pushBuildingVBOs(posx, angle, 1, 0, 0, [0,0,1,0]);
+                this.pushBuildingVBOs(posx, angle, 1, 0, 1, [0,0,1,0]);
+            }
             vec3.add(pos, pos, [0,1,0]);
         }
-        this.pushBuildingVBOs(pos, angle, 1, building.bType, 2, [0,0,1,0]);
+
+        r = this.hash(pos[0] + pos[2]) * 0.3 + 0.5;
+        let g = this.hash(pos[0] + pos[2] * 50) * 0.3 + 0.5;
+        let b = this.hash(pos[0] + pos[2] * 500) * 0.05 + 0.95;
+        this.pushBuildingVBOs(pos, angle, 1, building.bType, 2, [r,g,b,1]);
   }
 
   placeTrees(building: Building, iters: number) {

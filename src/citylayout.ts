@@ -42,30 +42,29 @@ export class CityLayout {
         vec2.divide(this.gridDim, [this.bounds[0] * 2, this.bounds[1] * 2], this.dim);
     }
 
-    genCity(iters: number) {
-
-        let x0 = Math.floor(this.hash(iters + 30) * this.dim[0]);
-        let y0 = Math.floor(this.hash(iters + 70) * this.dim[1]);
+    genCity(iters: number, seed: number) {
+        
+        let x0 = Math.floor(this.hash(seed + 30) * this.dim[0]);
+        let y0 = Math.floor(this.hash(seed + 70) * this.dim[1]);
         let b = new Building(vec3.fromValues(0.0,0.0,0.0), vec2.fromValues(1.0,1.0), 2);
 
-        x0 = Math.floor(this.hash(iters + 100) * this.dim[0]);
-        y0 = Math.floor(this.hash(iters + 1000) * this.dim[1]);
+        x0 = Math.floor(this.hash(seed + 50) * this.dim[0]);
+        y0 = Math.floor(this.hash(seed + 1000) * this.dim[1]);
         let b2 = new Building(this.gridToWorld(x0,y0), vec2.fromValues(1.0,1.0), 1);
 
-        x0 = Math.floor(this.hash(iters + 200) * this.dim[0]);
-        y0 = Math.floor(this.hash(iters + 400) * this.dim[1]);
+        x0 = Math.floor(this.hash(seed + 200) * this.dim[0]);
+        y0 = Math.floor(this.hash(seed + 400) * this.dim[1]);
 
         let b4 = new Building(this.gridToWorld(x0,y0), vec2.fromValues(1.0,1.0), 1);
-        b4.angle = -90;
+
         
         this.pushBuilding(b, this.buildings, 3);
         this.pushBuilding(b2, this.buildings, 2);
         this.pushBuilding(b4, this.buildings, 2);
-        console.log(this.grid);
-        this.placeGym(vec3.fromValues(2.0,0.0,0.0), this.buildings);
+        //this.placeGym(vec3.fromValues(2.0,0.0,0.0), this.buildings);
         for(let i = 0; i < 80; i++) {
-            let x = Math.floor(this.hash(iters + i) * this.dim[0]);
-            let y = Math.floor(this.hash(iters + 50 + i) * this.dim[1]);
+            let x = Math.floor(this.hash(seed + i) * this.dim[0]);
+            let y = Math.floor(this.hash(seed + 50 + i) * this.dim[1]);
             let pos = this.gridToWorld(x,y);
             
             let b3 = new Building(pos, vec2.fromValues(1.0,1.0), 3);
@@ -76,18 +75,20 @@ export class CityLayout {
         }
         //this.pushBuilding(b2, this.buildings);
         //this.canPlaceBuilding(b2.pos);
-        // for(let i = 0; i < iters; i++) {
-        //     this.iterCityGrowth();
-        // }
+        for(let i = 0; i < iters; i++) {
+            this.iterCityGrowth();
+        }
     }
 
+
+
     iterCityGrowth() {
-        console.log(this.buildings);
         let new_buildings : Building[] = [];
+        let gym = false;
+        let gympos = vec3.create();
         for(let i = 0; i < this.buildings.length; i++) {
             let building = this.buildings[i];
             if(building == undefined) {
-                console.log("undefined!!");
                 continue;
             }
             let bType = building.bType;
@@ -103,18 +104,20 @@ export class CityLayout {
             else if(building.bType == 1) { //STACKABLE BUILDING
                 let b = new Building(pos, vec2.fromValues(1.0,1.0), bType);
                 let stack_prob = this.hash(this.iters + b.pos[0]);
-                if(stack_prob > 0.5) {
+                if(stack_prob > 0.75 && building.iters < 6) {
                     building.iters++;
                 }
-                console.log(stack_prob);
-                
-                // if(stack_prob < 0.05 && building.iters < 1 && this.hash(stack_prob * 500) > 0.2) {
-                //     let bs = new Building(pos, vec2.fromValues(1.0,1.0), 5);
-                //     this.pushBuilding(bs, new_buildings, 2);
-                // }
-                // else {
+                if(this.canPlaceGym(building.pos, 1) && this.hash(b.pos[0] * 500) > 0.75) {
+                    gym = true;
+                    vec3.copy(gympos, building.pos);
+                }
+                if(stack_prob < 0.2 && building.iters < 1 && this.hash(stack_prob * 500) > 0.5) {
+                    let bs = new Building(pos, vec2.fromValues(1.0,1.0), 5);
+                    this.pushBuilding(bs, new_buildings, 2);
+                }
+                else {
                     this.pushBuilding(building, new_buildings, 2);
-                //} 
+                } 
                 if(this.hash(stack_prob) > 0.5) {
                     let dpos = [0.0,0.0,0.0];
                     let idx = this.hash(stack_prob + b.pos[0]);
@@ -149,6 +152,9 @@ export class CityLayout {
         }
         this.iters++;
         this.buildings = new_buildings;
+        if(gym) {
+            this.placeGym(gympos, this.buildings);
+        }
     }
 
     
@@ -164,10 +170,8 @@ export class CityLayout {
     canPlaceBuilding(pos: vec3, i: number) {
         let gPos = this.worldToGrid(pos);
         if(gPos[0] >= this.dim[0] || gPos[0] < 0 || gPos[1] >= this.dim[1] || gPos[1] < 0){
-            console.log("TRYING TO GO OUT OF BOUNDS");
             return false;
         }
-        console.log(gPos);
         if(this.grid[gPos[0]][gPos[1]][0] < i) {
             if(this.grid[gPos[0]][gPos[1]][0] == 1) {
                 this.buildings[this.grid[gPos[0]][gPos[1]][1]] = undefined;
@@ -185,20 +189,32 @@ export class CityLayout {
 
     clearBuildings(pos: vec3, rad: number) {
         let gPos = this.worldToGrid(pos);
-        console.log(gPos);
         for(let i = 0; i <=  rad; i++) {
             for(let j = 0; j <=  rad; j++) {
                 let x = gPos[0] + i;
-                let y = gPos[1] + j;
-                console.log(x + " " + y);
+                let y = gPos[1] - j;
                 if(this.grid[x][y][0] < 3) {
-                    if(this.grid[x][y][0] < 3) {
-                        console.log("CLEAR BUILDINGS");
                         this.buildings[this.grid[x][y][1]] = undefined;
-                    } 
                 }
             }
         }
+    }
+
+    canPlaceGym(pos: vec3, rad: number) {
+        let gPos = this.worldToGrid(pos);
+        for(let i = 0; i <=  rad; i++) {
+            for(let j = 0; j <=  rad; j++) {
+                let x = gPos[0] + i;
+                let y = gPos[1] - j;
+                if(x >= this.dim[0] || y < 0) {
+                    return false;
+                }
+                if(this.grid[x][y][0] != 2) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     gridToWorld(x:number, y: number) {
