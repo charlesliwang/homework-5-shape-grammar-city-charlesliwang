@@ -3453,7 +3453,7 @@ function main() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.setAspectRatio(window.innerWidth / window.innerHeight);
     camera.updateProjectionMatrix();
-    readTextFile("/src/geometry/win_frame.obj", 0, 0);
+    readTextFile(__webpack_require__(72), 0, 0);
     readTextFile("/src/geometry/win_glass.obj", 0, 1);
     readTextFile("/src/geometry/build_base.obj", 1, 0);
     readTextFile("/src/geometry/build_level.obj", 1, 1);
@@ -15808,6 +15808,12 @@ module.exports = "#version 300 es\n\n//This is a vertex shader. While it is call
 /***/ (function(module, exports) {
 
 module.exports = "#version 300 es\n\n// This is a fragment shader. If you've opened this file first, please\n// open and read lambert.vert.glsl before reading on.\n// Unlike the vertex shader, the fragment shader actually does compute\n// the shading of geometry. For every pixel in your program's output\n// screen, the fragment shader is run for every bit of geometry that\n// particular pixel overlaps. By implicitly interpolating the position\n// data passed into the fragment shader by the vertex shader, the fragment shader\n// can compute what color to apply to its pixel based on things like vertex\n// position, light position, and vertex color.\nprecision highp float;\n\nuniform vec4 u_Color; // The color with which to render this instance of geometry.\nuniform vec4 u_Time;\n\n// These are the interpolated values out of the rasterizer, so you can't know\n// their specific values without knowing the vertices that contributed to them\nin vec4 fs_Nor;\nin vec4 fs_LightVec;\nin vec4 fs_Col;\n\nin vec3 ray_Dir;\nin vec4 ws_Pos;\nin float perlin;\n\nout vec4 out_Col; // This is the final output color that you will see on your\n                  // screen for the pixel that is currently being processed.\n\n\nfloat cosine_remap(float x) {\n    return (1.0 - cos(x * 3.1415)) / 2.0;\n}\n\nfloat contrast_remap(float x) {\n    return x * (x + 0.5) * (x + 0.5) * (x + 0.5) ;\n}\n\nvoid main()\n{\n    // Material base color (before shading)\n        vec4 diffuseColor = u_Color;\n        //diffuseColor = vec4(ws_Pos);\n\n        // Calculate the diffuse term for Lambert shading\n        float diffuseTerm = dot(normalize(fs_Nor), normalize(fs_LightVec));\n        float perlin_factor = perlin * cosine_remap(abs(u_Time.x - 150.0)  / 300.0);\n        perlin_factor = (perlin_factor + 0.1) * (perlin_factor + 0.5) * 1.5;\n        perlin_factor = clamp(perlin_factor, 0.0, 1.0);\n        perlin_factor = perlin;\n        diffuseColor = mix(diffuseColor, vec4(1,0,0,1), perlin_factor);\n        if(perlin_factor > 0.7) {\n            //diffuseColor = vec4(0,1,0,1);\n            diffuseColor = mix(diffuseColor, vec4(0.7,1.0,0.8,1), cosine_remap((perlin_factor - 0.8) * 5.0));\n        } else if(perlin_factor < 0.2) {\n            diffuseColor = mix(vec4(0.4,0,0.4,1),diffuseColor, (perlin_factor) * 5.0);\n\n        }\n        diffuseColor = vec4(1.0);\n        diffuseTerm = 1.0;\n        // Avoid negative lighting values\n        // diffuseTerm = clamp(diffuseTerm, 0, 1);\n\n        // ray marching step\n\n\n        float ambientTerm = 0.2;\n\n        float lightIntensity = diffuseTerm + ambientTerm;   //Add a small float value to the color multiplier\n                                                            //to simulate ambient lighting. This ensures that faces that are not\n                                                            //lit by our point light are not completely black.\n        //lightIntensity = 1.0f;\n        // Compute final shaded color\n        out_Col = vec4(diffuseColor.rgb * lightIntensity, diffuseColor.a);\n        out_Col = vec4(fs_Nor.xyz,1.0);\n}\n"
+
+/***/ }),
+/* 72 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__.p + "obj/win_frame2Wi4LEY.obj";
 
 /***/ })
 /******/ ]);

@@ -174,20 +174,20 @@ function main() {
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
 
-  readTextFile("/src/geometry/win_frame.obj", 0 ,0);
-  readTextFile("/src/geometry/win_glass.obj", 0 ,1);
-  readTextFile("/src/geometry/build_base.obj", 1 ,0);
-  readTextFile("/src/geometry/build_level.obj", 1 ,1);
-  readTextFile("/src/geometry/build_roof.obj", 1 ,2);
-  readTextFile("/src/geometry/build_roof.obj", 1 ,3);
-  readTextFile("/src/geometry/pokecenter.obj", 2, 0);
-  readTextFile("/src/geometry/pokecenter_red.obj", 2, 1);
-  readTextFile("/src/geometry/pokecenter_win.obj", 2, 2);
-  readTextFile("/src/geometry/tree.obj", 3, 0);
-  readTextFile("/src/geometry/tree_trunk.obj", 3, 1);
-  readTextFile("/src/geometry/gym_base.obj", 4, 0);
-  readTextFile("/src/geometry/gym_brown.obj", 4, 1);
-  readTextFile("/src/geometry/split_building.obj", 5, 0);
+  readTextFile(require('./geometry/win_frame.obj'), 0 ,0);
+  readTextFile(require('./geometry/win_glass.obj'), 0 ,1);
+  readTextFile(require('./geometry/build_base.obj'), 1 ,0);
+  readTextFile(require('./geometry/build_level.obj'), 1 ,1);
+  readTextFile(require('./geometry/build_roof.obj'), 1 ,2);
+  readTextFile(require('./geometry/build_roof.obj'), 1 ,3);
+  readTextFile(require('./geometry/pokecenter.obj'), 2, 0);
+  readTextFile(require('./geometry/pokecenter_red.obj'), 2, 1);
+  readTextFile(require('./geometry/pokecenter_win.obj'), 2, 2);
+  readTextFile(require('./geometry/tree.obj'), 3, 0);
+  readTextFile(require('./geometry/tree_trunk.obj'), 3, 1);
+  readTextFile(require('./geometry/gym_base.obj'), 4, 0);
+  readTextFile(require('./geometry/gym_brown.obj'), 4, 1);
+  readTextFile(require('./geometry/split_building.obj'), 5, 0);
 
   // Start the render loop
   tick();

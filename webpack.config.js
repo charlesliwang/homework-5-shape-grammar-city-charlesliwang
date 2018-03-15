@@ -20,8 +20,12 @@ module.exports = {
       },
       {
         test: /\.obj$/,
-        loader: 'webpack-obj-loader'
-      }
+        loader: 'file-loader',
+        options: {
+          name: '[name][sha512:hash:base64:7].[ext]',
+          outputPath: 'obj/',
+        },
+      },
     ]
   },
   resolve: {
